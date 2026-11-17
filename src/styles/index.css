@@ -1,0 +1,46 @@
+/* Tailwind 入口 + 全局样式 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 全局基础样式（preflight 已关闭，手动补充必要 reset） */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none; /* 桌面应用默认禁止文本选择，输入框内恢复 */
+}
+
+input,
+textarea,
+[contenteditable="true"],
+.selectable {
+  user-select: text;
+}
+
+/* KaTeX 渲染容器横向滚动（长公式） */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.4);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

@@ -1,0 +1,97 @@
+sequenceDiagram
+    participant U as 用户
+    participant FE as 前端(CapturePage)
+    participant CV as OpenCV.js Worker
+    participant CMD as mistake_cmd/ocr_cmd
+    participant OCR as OcrOrchestrator
+    participant CL as 云端公式OCR
+    participant TE as Tesseract sidecar
+    participant AT as AttributionEngine
+    participant GW as AI Gateway
+    participant DB as SQLite(SQLCipher)
+
+    Note over U,DB: 流程1 拍照录入 → OCR → 归因 → 入库
+    U->>FE: 拍照/导入图片
+    FE->>CV: 边缘检测+透视校正+圈选
+    CV-->>FE: 校正后图像+区域
+    FE->>CMD: invoke mistake_create_from_image
+    CMD->>DB: INSERT mistake(status=pending_analysis)
+    CMD->>OCR: ocr_run(mistake_id)
+    alt 在线
+        OCR->>CL: 公式识别(LaTeX)
+        OCR->>TE: 本地文字识别(交叉)
+        OCR->>OCR: 一致性校验
+    else 离线
+        OCR->>TE: Tesseract(+ONNX公式若已下载)
+        OCR-->>DB: 标记 status=pending_analysis(待深度分析)
+    end
+    OCR-->>DB: UPDATE ocr_text/latex/engine/confidence
+    CMD->>AT: attribution_run(mode=auto)
+    AT->>AT: 规则库命中?
+    opt 未命中或需深判
+        AT->>GW: LLM 归因请求(脱敏题干)
+        GW-->>AT: 流式归因结果
+    end
+    AT->>DB: INSERT attribution(origin,kg_node_id三级) + status=analyzed
+    CMD-->>FE: MistakeDetail(含归因)
+
+    Note over U,DB: 流程2 自适应出题 + 学科校验
+    participant V as VariantGenerator
+    participant VP as 校验管道
+    participant SY as SymPy sidecar
+    FE->>V: variant_generate(mistake_id,count,channel)
+    V->>GW: LLM 生成变式(同构+递进)
+    GW-->>V: 流式草稿
+    loop 每道草稿
+        V->>VP: validate(draft)
+        VP->>VP: 闸1 规则校验
+        VP->>SY: 闸2 符号验证(数学/物理)
+        VP->>GW: 闸3 LLM 自校验
+        alt 全部通过
+            VP->>DB: variant(validate_status=passed)
+        else 失败≤2次
+            VP->>GW: 携带失败原因重生成
+        else 仍失败
+            VP->>DB: variant(validate_status=manual_review)
+        end
+        V-->>FE: channel 推送
+    end
+    FE->>V: variant_submit_attempt(answer)
+    V->>DB: attempt + mastery(EMA) + review_plan(1/3/7/15)
+    V-->>FE: {is_correct, feedback, mastery_delta}
+
+    Note over U,DB: 流程3 离线→在线冲突合并
+    Note over AT: 断网: 规则初判 attribution(origin=local)
+    AT->>DB: status=pending_analysis
+    FE->>AT: 联网后 attribution_run(mode=cloud, batch)
+    loop 每题
+        AT->>GW: 云端深度归因
+        AT->>DB: INSERT attribution(origin=cloud)
+        alt 一致
+            AT->>DB: cloud 生效, local superseded
+        else 不一致
+            AT->>DB: INSERT conflict(pending), status=conflict
+        end
+    end
+    FE->>AT: conflict_resolve(id, choice)
+    AT->>DB: 选定生效, 另一方 superseded(保留双版本)
+
+    Note over U,DB: 流程4 多模型路由 + 熔断
+    participant R as Router
+    participant CB as CircuitBreaker
+    participant P1 as 主模型
+    participant P2 as 备用模型
+    FE->>GW: ai_chat(task_type, messages, channel)
+    GW->>R: 路由决策 ≤100ms
+    GW->>CB: 检查熔断器
+    alt Closed
+        GW->>P1: chat_stream
+        P1-->>GW: SSE chunks
+        GW-->>FE: Channel 逐块推送
+    else Open/失败
+        GW->>CB: 记录失败(3次→Open 30s)
+        GW->>P2: 立即降级(切换≤1s)
+        P2-->>GW: SSE chunks
+        GW-->>FE: Channel 推送(带降级标记)
+    end
+    GW->>DB: call_log(成本计量+脱敏)

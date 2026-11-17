@@ -1,0 +1,94 @@
+name: CI 测试与打包
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # 国内 runner 如需镜像可切换为 rsproxy/tuna；GitHub 托管 runner 直连 crates.io 即可
+  CARGO_TERM_COLOR: always
+
+jobs:
+  cargo-test:
+    name: Rust 全量测试（125 用例）
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Rust（GNU 工具链，自带 MinGW，与本机一致）
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-x86_64-pc-windows-gnu
+
+      - name: Cargo 缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-test-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-test-
+
+      - name: cargo test
+        working-directory: src-tauri
+        run: cargo test --verbose
+
+  frontend-test:
+    name: 前端测试与类型检查
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+
+  build-installer:
+    name: 打包 Windows 安装包（轻量版）
+    needs: [cargo-test, frontend-test]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装 Rust（GNU 工具链）
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable-x86_64-pc-windows-gnu
+
+      - name: Cargo 缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            src-tauri/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-build-
+
+      - run: npm ci
+
+      - name: tauri build（NSIS/MSI）
+        run: npm run tauri build
+        env:
+          # 未申请代码签名证书，关闭签名
+          TAURI_SIGNING_PRIVATE_KEY: ""
+
+      - name: 上传安装包产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: maiduo-installer-${{ github.sha }}
+          path: |
+            src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/*.exe
+          if-no-files-found: error

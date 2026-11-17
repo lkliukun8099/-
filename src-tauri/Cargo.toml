@@ -1,0 +1,79 @@
+[package]
+name = "maiduo_cuotiben"
+version = "0.1.0"
+description = "麦兜错题软件：本地优先 + AI 驱动的智能错题管理"
+authors = ["MaiDuo Team"]
+edition = "2021"
+rust-version = "1.77.2"
+
+# 前端产物打包进二进制
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[lib]
+name = "maiduo_cuotiben_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+# 桌面框架
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-fs = "2"
+# 数据库：SQLCipher 静态编译进二进制
+rusqlite = { version = "0.31", features = ["bundled-sqlcipher-vendored-openssl"] }
+# 序列化
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# 异步运行时
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time", "process", "io-util", "fs"] }
+# HTTPS/SSE（rustls，避免 OpenSSL 依赖）
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json", "multipart"] }
+futures = "0.3"
+async-stream = "0.3"
+async-trait = "0.1"
+# Token 计量
+tiktoken-rs = "0.6"
+# OS 钥匙串
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
+# 结构化日志
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+tracing-appender = "0.2"
+# 图像处理（落盘/格式转换）
+image = "0.25"
+# DB 密钥派生 / E2E 加密预留
+argon2 = "0.5"
+aes-gcm = "0.10"
+base64 = "0.22"
+# 错误处理
+anyhow = "1"
+thiserror = "1"
+# 工具
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+once_cell = "1"
+parking_lot = "0.12"
+dashmap = "6"
+regex = "1"
+sha2 = "0.10"
+hmac = "0.12"
+rand = "0.8"
+
+# ONNX 公式识别为可选组件（模型按需下载，低端机可裁剪）
+[features]
+default = []
+onnx = ["dep:ort"]
+
+[dependencies.ort]
+version = "2.0.0-rc"
+optional = true
+default-features = false
+features = ["load-dynamic"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

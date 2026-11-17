@@ -1,0 +1,115 @@
+classDiagram
+    class Mistake {
+        +i64 id
+        +i64 subject_id
+        +String ocr_text
+        +String ocr_latex
+        +String status
+        +i32 version
+    }
+    class Attribution {
+        +i64 id
+        +String origin
+        +String cause_label
+        +Option~i64~ kg_node_id
+        +f32 confidence
+        +bool is_active
+    }
+    class VariantQuestion {
+        +i64 id
+        +String content
+        +String answer
+        +String validate_status
+    }
+    class KgNode {
+        +i64 id
+        +String code
+        +String name
+        +u8 level
+    }
+    class Mastery {
+        +i64 kg_node_id
+        +f32 score
+        +update(correct: bool)
+    }
+    class ReviewPlan {
+        +i64 target_id
+        +u8 stage
+        +String next_due_at
+        +advance()
+        +reset()
+    }
+    class OcrEngine {
+        <<trait>>
+        +recognize(image) OcrResult
+        +name() String
+    }
+    class CloudFormulaOcr
+    class TesseractOcr
+    class OnnxFormulaOcr
+    class OcrOrchestrator {
+        +run(mistake_id, prefer) OcrResult
+        -consistency_check(a, b) f32
+    }
+    class ProviderAdapter {
+        <<trait>>
+        +chat_stream(req) ChatStream
+        +chat_once(req) ChatResponse
+        +estimate_tokens(text) u32
+    }
+    class OpenAiCompatAdapter
+    class HunyuanAdapter
+    class Gateway {
+        +chat(task_type, req, channel)
+        -router: Router
+        -breakers: DashMap
+        -meter: Meter
+        -keychain: Keychain
+    }
+    class CircuitBreaker {
+        +state: CircuitState
+        +on_success()
+        +on_failure()
+        +allow() bool
+    }
+    class AttributionEngine {
+        +analyze(mistake, mode) Attribution
+        -rules: RuleEngine
+    }
+    class VariantGenerator {
+        +generate(mistake_id, count, channel)
+        -validator: ValidatePipeline
+    }
+    class ValidatePipeline {
+        +validate(draft) ValidateReport
+        -rules: RuleGate
+        -symbolic: SymbolicGate
+        -llm: LlmGate
+    }
+    class ReviewScheduler {
+        +schedule(target)
+        +complete(plan_id, correct)
+    }
+    class DbPool {
+        +conn() Connection
+    }
+
+    Mistake "1" --> "*" Attribution
+    Mistake "1" --> "*" VariantQuestion
+    Attribution "*" --> "0..1" KgNode
+    VariantQuestion "*" --> "1" KgNode
+    OcrEngine <|.. CloudFormulaOcr
+    OcrEngine <|.. TesseractOcr
+    OcrEngine <|.. OnnxFormulaOcr
+    OcrOrchestrator --> OcrEngine
+    ProviderAdapter <|.. OpenAiCompatAdapter
+    ProviderAdapter <|.. HunyuanAdapter
+    Gateway --> ProviderAdapter
+    Gateway --> CircuitBreaker
+    AttributionEngine --> Gateway
+    VariantGenerator --> Gateway
+    VariantGenerator --> ValidatePipeline
+    ReviewScheduler --> Mastery
+    OcrOrchestrator --> DbPool
+    AttributionEngine --> DbPool
+    Gateway --> DbPool

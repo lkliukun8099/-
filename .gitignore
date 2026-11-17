@@ -1,0 +1,15 @@
+# 依赖与构建产物
+node_modules/
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# 本机 sidecar（不随仓库分发，CI/本地打包时按需放置）
+src-tauri/binaries/
+src-tauri/tools/mathverify/dist/
+src-tauri/tools/mathverify/build/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
