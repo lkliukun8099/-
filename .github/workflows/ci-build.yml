@@ -17,10 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 安装 Rust（GNU 工具链，自带 MinGW，与本机一致）
+      - name: 安装 Rust（MSVC 工具链；runner 自带 VS Build Tools）
         uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable-x86_64-pc-windows-gnu
+
+      - name: 安装 NASM（OpenSSL vendored 编译需要）
+        run: choco install nasm -y --no-progress
 
       - name: Cargo 缓存
         uses: actions/cache@v4
@@ -61,10 +62,11 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: 安装 Rust（GNU 工具链）
+      - name: 安装 Rust（MSVC 工具链）
         uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable-x86_64-pc-windows-gnu
+
+      - name: 安装 NASM（OpenSSL vendored 编译需要）
+        run: choco install nasm -y --no-progress
 
       - name: Cargo 缓存
         uses: actions/cache@v4
