@@ -40,7 +40,5 @@
       "icons/icon.ico"
     ],
     "resources": ["resources/kg_seed/*.json"]
-    // v0.1.0 轻量包：tesseract/mathverify sidecar 暂不随包分发（运行时检测，缺失自动降级）。
-    // 完整包打包时恢复："externalBin": ["binaries/tesseract", "tools/mathverify/mathverify"]
   }
 }
