@@ -1,6 +1,7 @@
 //! Tauri Commands 层：一模块一文件，统一返回 `Result<T, AppError>`。
 
 pub mod attribution_cmd;
+pub mod chat_cmd;
 pub mod kg_cmd;
 pub mod mastery_cmd;
 pub mod mistake_cmd;

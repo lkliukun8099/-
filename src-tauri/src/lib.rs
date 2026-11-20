@@ -121,6 +121,7 @@ pub fn run() {
             commands::ocr_cmd::ocr_run,
             // 归因（F-06）与冲突合并（F-16）
             commands::attribution_cmd::attribution_run,
+            commands::chat_cmd::chat_analyze,
             commands::attribution_cmd::attribution_confirm,
             commands::attribution_cmd::conflict_list,
             commands::attribution_cmd::conflict_resolve,

@@ -13,3 +13,8 @@ src-tauri/tools/mathverify/build/
 .DS_Store
 Thumbs.db
 *.log
+
+# 本地产物与发布标记（不入库）
+dist-installer/
+.wbapp_*.genie
+.workbuddy/applications.yaml

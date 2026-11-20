@@ -369,3 +369,11 @@ export const SUBJECTS = [
   { id: 3, code: "chemistry", name: "化学" },
   { id: 4, code: "english", name: "英语" },
 ] as const;
+
+// ---- 对话式错题分析（聊天入口） ----
+export interface ChatAnalyzeResult {
+  mistakeId: number;
+  attribution: Attribution | null;
+  variants: VariantDraft[];
+  note: string | null;
+}

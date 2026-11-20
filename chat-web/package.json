@@ -1,0 +1,16 @@
+{
+  "name": "maidoupig-chat",
+  "version": "0.1.0",
+  "description": "麦兜错题助手：对话式错题分析（错误点诊断 + 指正 + 同类变式训练）",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

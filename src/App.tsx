@@ -18,6 +18,7 @@ import {
   Alert,
   Divider,
 } from "@mui/material";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import HomeIcon from "@mui/icons-material/Home";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
@@ -41,12 +42,14 @@ import ReportPage from "./pages/ReportPage";
 import ModelSettingsPage from "./pages/ModelSettingsPage";
 import SystemSettingsPage from "./pages/SystemSettingsPage";
 import ConflictMergePage from "./pages/ConflictMergePage";
+import ChatPage from "./pages/ChatPage";
 
 const DRAWER_WIDTH = 216;
 
 /** 侧边导航项定义 */
 const NAV_ITEMS = [
   { path: "/", label: "今日面板", icon: <HomeIcon /> },
+  { path: "/chat", label: "对话助手", icon: <SmartToyIcon /> },
   { path: "/capture", label: "拍照录入", icon: <PhotoCameraIcon /> },
   { path: "/import", label: "相册导入", icon: <UploadFileIcon /> },
   { path: "/mistakes", label: "错题本", icon: <MenuBookIcon /> },
@@ -133,6 +136,7 @@ export default function App(): React.JSX.Element {
           <Toolbar variant="dense" />
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="/capture" element={<CapturePage />} />
             <Route path="/import" element={<ImportPage />} />
             <Route path="/mistakes" element={<MistakeListPage />} />
