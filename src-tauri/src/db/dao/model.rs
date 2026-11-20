@@ -92,7 +92,7 @@ impl<'a> ModelDao<'a> {
         Ok(RoutePolicy {
             id: row.get("id")?,
             task_type: row.get("task_type")?,
-            primary: row.get("primary")?,
+            primary: row.get("primary_route")?,
             fallbacks: serde_json::from_str(&fallbacks_json).unwrap_or_default(),
             timeout_ms: row.get("timeout_ms")?,
             max_cost_cny: row.get("max_cost_cny")?,
@@ -219,11 +219,11 @@ impl<'a> ModelDao<'a> {
     pub fn upsert_policy(&self, policy: &RoutePolicy) -> Result<i64, AppError> {
         let fallbacks_json = serde_json::to_string(&policy.fallbacks)?;
         self.conn.execute(
-            "INSERT INTO route_policy(task_type, primary, fallbacks, timeout_ms,
+            "INSERT INTO route_policy(task_type, primary_route, fallbacks, timeout_ms,
                max_cost_cny, monthly_budget_cny)
              VALUES (?1,?2,?3,?4,?5,?6)
              ON CONFLICT(task_type) DO UPDATE SET
-               primary = excluded.primary,
+               primary_route = excluded.primary_route,
                fallbacks = excluded.fallbacks,
                timeout_ms = excluded.timeout_ms,
                max_cost_cny = excluded.max_cost_cny,

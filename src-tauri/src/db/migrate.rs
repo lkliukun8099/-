@@ -250,7 +250,7 @@ CREATE TABLE model_provider (
 CREATE TABLE route_policy (
   id INTEGER PRIMARY KEY,
   task_type TEXT NOT NULL UNIQUE,
-  primary TEXT NOT NULL,
+  primary_route TEXT NOT NULL,
   fallbacks TEXT NOT NULL DEFAULT '[]',
   timeout_ms INTEGER NOT NULL DEFAULT 30000,
   max_cost_cny REAL,
@@ -277,7 +277,7 @@ INSERT INTO subject(code, name) VALUES
   ('math', '数学'), ('physics', '物理'), ('chemistry', '化学'), ('english', '英语');
 
 -- 默认路由策略（provider.model 形式，用户可在模型设置中修改）
-INSERT INTO route_policy(task_type, primary, fallbacks, timeout_ms) VALUES
+INSERT INTO route_policy(task_type, primary_route, fallbacks, timeout_ms) VALUES
   ('ocr_attribution', 'deepseek.deepseek-chat', '["glm.glm-4-flash","kimi.moonshot-v1-8k"]', 30000),
   ('variant_gen',     'deepseek.deepseek-chat', '["glm.glm-4-flash"]', 60000),
   ('llm_check',       'glm.glm-4-flash',        '["deepseek.deepseek-chat"]', 30000),
