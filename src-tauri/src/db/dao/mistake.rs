@@ -333,7 +333,7 @@ impl<'a> MistakeDao<'a> {
     /// 软删除。
     pub fn soft_delete(&self, id: i64) -> Result<(), AppError> {
         let affected = self.conn.execute(
-            "UPDATE mistake SET deleted = 1, updated_at = datetime('now') WHERE id = ?1",
+            "UPDATE mistake SET deleted = 1, updated_at = datetime('now') WHERE id = ?1 AND deleted = 0",
             params![id],
         )?;
         if affected == 0 {
