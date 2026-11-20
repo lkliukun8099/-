@@ -186,6 +186,7 @@ impl HunyuanAdapter {
             .unwrap_or_default();
         let usage = parsed.response.usage;
         let tokens_in = usage
+            .as_ref()
             .and_then(|u| u.prompt_tokens)
             .unwrap_or_else(|| self.estimate_tokens(&req.messages.iter().map(|m| m.content.as_str()).collect::<String>()));
         let tokens_out = usage

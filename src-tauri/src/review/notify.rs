@@ -64,4 +64,4 @@ fn scan_and_notify(db: &DbPool, app: &tauri::AppHandle) -> Result<(), crate::err
 
 // 保证 Manager trait 被链接（部分通知 API 路径需要）
 #[allow(unused)]
-fn _assert_manager<T: Manager>(_t: &T) {}
+fn _assert_manager<R: tauri::Runtime, T: Manager<R>>(_t: &T) {}
