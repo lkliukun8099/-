@@ -1,5 +1,5 @@
 [package]
-name = "maiduo_cuotiben"
+name = "maidoupig"
 version = "0.1.0"
 description = "麦兜错题软件：本地优先 + AI 驱动的智能错题管理"
 authors = ["MaiDuo Team"]
@@ -11,7 +11,7 @@ rust-version = "1.77.2"
 tauri-build = { version = "2", features = [] }
 
 [lib]
-name = "maiduo_cuotiben_lib"
+name = "maidoupig_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [dependencies]

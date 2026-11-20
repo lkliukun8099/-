@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "麦兜错题软件",
+  "productName": "maidoupig",
   "version": "0.1.0",
-  "identifier": "com.maiduo.cuotiben",
+  "identifier": "com.maidoupig.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",

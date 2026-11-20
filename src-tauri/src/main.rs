@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    maiduo_cuotiben_lib::run();
+    maidoupig_lib::run();
 }
