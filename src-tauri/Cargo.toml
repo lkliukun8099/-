@@ -1,6 +1,6 @@
 [package]
 name = "maidoupig"
-version = "0.1.0"
+version = "0.2.0"
 description = "麦兜错题软件：本地优先 + AI 驱动的智能错题管理"
 authors = ["MaiDuo Team"]
 edition = "2021"
