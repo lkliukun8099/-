@@ -113,6 +113,29 @@ jobs:
           totp_secret: ${{ secrets.ES_TOTP_SECRET }}
           file_path: ${{ github.workspace }}/src-tauri/target/release/bundle/nsis
 
+      # Certum 开源签名（方案 B，配好 CERTUM_* secrets 自动生效；联调说明见 docs/SIGNING.md）
+      - name: 代码签名（Certum SimplySign）
+        if: secrets.CERTUM_USER != ''
+        shell: pwsh
+        env:
+          CERTUM_USER: ${{ secrets.CERTUM_USER }}
+          CERTUM_PASSWORD: ${{ secrets.CERTUM_PASSWORD }}
+          CERTUM_TOTP_SECRET: ${{ secrets.CERTUM_TOTP_SECRET }}
+        run: |
+          # 1. 安装 SimplySign Desktop（云 HSM 客户端，证书私钥不出云）
+          Invoke-WebRequest -Uri "https://files.certum.eu/software/SimplySignDesktop/Windows/SimplySignDesktop.exe" -OutFile "$env:TEMP\SimplySignDesktop.exe"
+          Start-Process -FilePath "$env:TEMP\SimplySignDesktop.exe" -ArgumentList "/S" -Wait
+          # 2. 登录并等待云证书挂载到 Windows 证书存储（KSP）
+          & "C:\Program Files\SimplySignDesktop\SimplySignDesktop.exe" --login $env:CERTUM_USER $env:CERTUM_PASSWORD --totp-secret $env:CERTUM_TOTP_SECRET
+          Start-Sleep -Seconds 15
+          # 3. 对安装包与主程序签名（SHA256 + RFC3161 时间戳）
+          $signtool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" | Select-Object -First 1
+          Get-ChildItem "src-tauri/target/release/bundle/nsis/*.exe","src-tauri/target/release/maidoupig.exe" | ForEach-Object {
+            & $signtool sign /fd SHA256 /tr http://time.certum.pl /td SHA256 /sha1 AUTO /v $_.FullName
+          }
+          # 注：/sha1 AUTO 占位——联调时替换为证书指纹（证书入 store 后 certutil 可查），
+          # 或按 Certum 最新文档改用其指定参数。
+
       - name: 上传安装包产物
         uses: actions/upload-artifact@v4
         with:

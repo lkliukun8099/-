@@ -58,31 +58,44 @@ CI 中 `sslcom/esigner-codesign` 步骤已预埋（密钥存在即自动执行�
 
 ---
 
-## 方案 B：Certum 开源代码签名（推荐·零成本）
+## 方案 B：Certum 开源代码签名（推荐·零成本）【已选定，进行中】
 
 适合：项目开源（我们本就是开源核心路线），不花一分钱。
 
-### 第 1 步：确认开源资格
-- 仓库需公开（当前 `github.com/lkliukun8099/-` 需改为 Public，或另建公开镜像仓库）
-- 有开源许可证文件（建议 MIT，我可以补一个 LICENSE）
+### ✅ 已完成（2026-11-21）
+- 仓库转 Public 并改名：https://github.com/lkliukun8099/maidoupig
+- MIT LICENSE 已入库
+- CI 已预埋 Certum SimplySign 签名步骤（secrets 配好自动生效）
 
-### 第 2 步：注册 Certum 并申请（30 分钟 + 1~3 天审核）
-1. 打开 https://www.certum.eu 注册账户（选个人开发者）
-2. 申请 **Open Source Code Signing**（免费档）
-3. 个人身份验证：身份证/护照拍照上传 + 手机号验证（中国证件支持）
+### 第 1 步：注册 Certum 账户（10 分钟）
+1. 打开 https://en.certum.pl → 注册（选 **Individual / 个人开发者**）
+2. 邮箱激活 + 设置密码
 
-### 第 3 步：领取证书（SimplySign 云 HSM）
-1. 审核通过后证书入 SimplySign 云端
-2. 手机装 **SimplySign** App（扫码绑定，TOTP 二次验证）
-3. 记录：Certum 账户邮箱、密码、TOTP Secret
+### 第 2 步：申请 Open Source Code Signing（15 分钟 + 1~3 天审核）
+1. 登录后找到 **Open Source Code Signing**（免费档）申请入口
+2. 填写开源项目地址：https://github.com/lkliukun8099/maidoupig
+3. 个人身份验证：上传身份证或护照照片 + 手机号验证（中国证件支持）
+4. 等待审核邮件（1~3 个工作日）
 
-### 第 4 步：CI 签名（我来配）
-Certum 提供 signtool 兼容的云签名插件，我在 CI 里加步骤
-（`signtool /fd SHA256 /tr <时间戳> /td SHA256 /dlib SimplySign.dll ...`）。
-需要的 Secrets：`CERTUM_USER` / `CERTUM_PASSWORD` / `CERTUM_TOTP_SECRET`。
+### 第 3 步：激活 SimplySign 云签名（15 分钟）
+1. 审核通过后，证书发放至 **SimplySign 云 HSM**（私钥不出云）
+2. 手机安装 **SimplySign** App（应用商店搜 SimplySign，扫码绑定）
+3. 绑定时会显示 **TOTP 密钥串**（一串 Base32 字符）——**务必抄下来**，
+   它同时用于 App 动态口令和 CI 自动签名
 
-> 注：Certum 免费证书链在 Windows 受信任根目录内，SAC 同样认可；
-> 与付费 OV 的差异仅在品牌与审核深度。
+### 第 4 步：把 3 个值发我（或自己填 GitHub Secrets）
+仓库 → Settings → Secrets and variables → Actions：
+
+| Secret 名称 | 值 |
+|---|---|
+| `CERTUM_USER` | Certum 账户邮箱 |
+| `CERTUM_PASSWORD` | Certum 账户密码 |
+| `CERTUM_TOTP_SECRET` | 第 3 步的 TOTP 密钥串 |
+
+### 第 5 步：联调首签
+secrets 配好后告诉我，我推送触发 CI，观察签名步骤日志，
+必要时按 Certum 最新文档微调 signtool 参数（证书指纹等），
+成功后每个版本的安装包都带受信任签名。
 
 ---
 
