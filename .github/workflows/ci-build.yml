@@ -86,6 +86,22 @@ jobs:
           # 未申请代码签名证书，关闭签名
           TAURI_SIGNING_PRIVATE_KEY: ""
 
+      # Azure Trusted Signing 云端签名（配置好 vars/secrets 后自动生效，未配置则跳过产出未签名包）
+      - name: 代码签名（Azure Trusted Signing）
+        if: vars.TS_ACCOUNT_NAME != ''
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.TS_ENDPOINT }}
+          trusted-signing-account-name: ${{ vars.TS_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.TS_CERT_PROFILE }}
+          files-folder: ${{ github.workspace }}/src-tauri/target/release
+          files-folder-recurse: true
+          files-folder-filter: exe
+          files-catalog: "*.exe"
+
       - name: 上传安装包产物
         uses: actions/upload-artifact@v4
         with:
