@@ -102,6 +102,17 @@ jobs:
           files-folder-filter: exe
           files-catalog: "*.exe"
 
+      # ssl.com eSigner 云签名（方案 A，配好 4 个 ES_* secrets 自动生效）
+      - name: 代码签名（ssl.com eSigner OV）
+        if: secrets.ES_USERNAME != ''
+        uses: sslcom/esigner-codesign@main
+        with:
+          username: ${{ secrets.ES_USERNAME }}
+          password: ${{ secrets.ES_PASSWORD }}
+          credential_id: ${{ secrets.ES_CREDENTIAL_ID }}
+          totp_secret: ${{ secrets.ES_TOTP_SECRET }}
+          file_path: ${{ github.workspace }}/src-tauri/target/release/bundle/nsis
+
       - name: 上传安装包产物
         uses: actions/upload-artifact@v4
         with:

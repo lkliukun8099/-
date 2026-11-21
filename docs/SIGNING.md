@@ -1,58 +1,108 @@
-# Azure Trusted Signing 云端代码签名配置指南
+# maidoupig 代码签名完整手册（2026-11 修订版）
 
-> 目标：让 maidoupig 安装包通过 Windows 智能应用控制（SAC）信任校验。
-> CI 侧已配好（`.github/workflows/ci-build.yml` 的「代码签名」步骤），
-> 下面 4 步需要在 Azure 门户由账号持有人完成（约 30 分钟操作 + 1~3 天身份审核）。
+> 目标：让 maidoupig 安装包通过 Windows 智能应用控制（SAC）/ SmartScreen 校验。
+> CI 侧已预留签名步骤（`.github/workflows/ci-build.yml`），配好密钥后自动生效。
 
-## 老爸操作清单
+---
 
-### 第 1 步：注册 Azure 账户（10 分钟）
-1. 打开 https://portal.azure.com ，用微软账号登录（没有就先注册，免费）
-2. 创建订阅：搜索「订阅」→ 添加 → 选**即用即付**（需绑一张 Visa/ Mastercard 信用卡，签名服务个人档约 $10/月量级，以官网价格为准）
+## 0. 先读：三条路的现状（2026-11 核实）
 
-### 第 2 步：创建 Trusted Signing 账户（5 分钟）
-1. 搜索栏输入「Trusted Signing 账户」→ 创建
-2. 资源组：新建 `maidoupig-rg`；账户名：`maidoupig-sign`（全局唯一，冲突就换）
-3. 区域：选 **东亚（East Asia）** 或 **东南亚（Southeast Asia）**
-4. 定价层：**Basic**（个人/小团队够用）
-5. 记下「概述」页的 **账户 URI（endpoint）**，形如 `https://easia.codesigning.azure.net`
+| 方案 | 中国实体可用 | 费用 | CI 集成 | 结论 |
+|---|---|---|---|---|
+| Azure Artifact Signing（原 Trusted Signing） | ❌ 不支持中国公司/中国个人 | $9.99/月 | 最丝滑 | **此路不通**（地域限制） |
+| **ssl.com eSigner（OV 云签名）** | ✅ 支持中国企业验证 | ~$129/年 | 官方 GitHub Action | **推荐（付费正道）** |
+| **Certum 开源签名** | ✅ 个人身份即可 | **免费** | 手动步骤较多 | **推荐（零成本，契合开源核心）** |
+| 传统 CA（DigiCert/Sectigo OV） | ✅ | $150~300/年 | 云 HSM 工具链 | 备选 |
 
-### 第 3 步：身份验证 + 证书配置文件（审核 1~3 天）
-1. 在刚创建的账户里 → 「身份验证」→ 新建：
-   - **推荐企业身份**：南京釜鼎新能源科技有限公司（填统一社会信用代码，传营业执照，审核快、信誉等级高）
-   - 个人身份：上传身份证/护照（部分区域仍受限，企业身份更稳）
-2. 审核通过后 → 「证书配置文件」→ 创建：
-   - 配置文件名：`maidoupig-release`
-   - 类型：**Public Trust**（公开信任，SAC/SmartScreen 认可）
+**期望值管理（重要）**：签名 ≠ 立即免警告。SAC/SmartScreen 采用声誉累积制——
+同一发布者身份连续签名发布若干版本后，警告才会逐步消失（EV 证书自 2024 年起也不再即时豁免）。
+签名解决的是「无法验证发布者」这一硬性拦截，声誉靠持续发布积累。
 
-### 第 4 步：创建服务主体并授权（10 分钟）
-1. 搜索「Microsoft Entra ID」→ 「应用注册」→ 新注册：名称 `maidoupig-ci`，其余默认
-2. 记下：**应用程序(客户端) ID** 和 **目录(租户) ID**
-3. 「证书和机密」→ 新建客户端机密 → 记下 **机密值**（只显示一次！）
-4. 回到 Trusted Signing 账户 → 「访问控制(IAM)」→ 添加角色分配：
-   - 角色：**Trusted Signing Certificate Profile Signer**
-   - 成员：选 `maidoupig-ci` 应用
+---
 
-### 第 5 步：把 6 个值发给我（或自己填到 GitHub）
-在仓库 https://github.com/lkliukun8099/-/settings/secrets/actions 配置：
+## 方案 A：ssl.com eSigner OV 云签名（推荐·付费正道）
 
-**Secrets（3 个）**：
-| 名称 | 值 |
+适合：愿意 ~$129/年换省心，企业身份（釜鼎新能源）验证。
+
+### 第 1 步：购买与下单（15 分钟）
+1. 打开 https://www.ssl.com/certificates/code-signing/
+2. 选 **OV Code Signing Certificate**（1 年，约 $129；多年更便宜）
+3. 下单时主体信息填企业：**Nanjing Fuding New Energy Technology Co., Ltd.**（与营业执照一致）
+4. 支付方式：信用卡/PayPal
+
+### 第 2 步：企业身份验证（1~5 个工作日）
+1. ssl.com 会邮件要求提交：营业执照扫描件、法人身份证明、企业电话
+2. 可能有人工电话复核（留真实座机/手机）
+3. 验证通过后证书签发至 **eSigner 云 HSM**（私钥不出云，无需 U 盾）
+
+### 第 3 步：开通 eSigner 云签名（10 分钟）
+1. 登录 ssl.com 控制台 → 证书详情 → eSigner → 启用
+2. 记录三个值：
+   - **用户名 / 密码**（ssl.com 账户）
+   - **Credential ID**（eSigner 页面显示）
+   - **TOTP Secret**（绑定二次验证时显示的密钥串，务必保存）
+
+### 第 4 步：填到 GitHub Secrets（5 分钟）
+仓库 → Settings → Secrets and variables → Actions → New repository secret：
+
+| Secret 名称 | 值 |
 |---|---|
-| `AZURE_TENANT_ID` | 第 4 步的目录(租户) ID |
-| `AZURE_CLIENT_ID` | 第 4 步的应用程序(客户端) ID |
-| `AZURE_CLIENT_SECRET` | 第 4 步的客户端机密值 |
+| `ES_USERNAME` | ssl.com 用户名 |
+| `ES_PASSWORD` | ssl.com 密码 |
+| `ES_CREDENTIAL_ID` | eSigner Credential ID |
+| `ES_TOTP_SECRET` | TOTP 密钥串 |
 
-**Variables（3 个，在 Variables 标签页）**：
-| 名称 | 值 |
-|---|---|
-| `TS_ACCOUNT_NAME` | `maidoupig-sign` |
-| `TS_ENDPOINT` | 第 2 步的账户 URI |
-| `TS_CERT_PROFILE` | `maidoupig-release` |
+### 第 5 步：通知我
+CI 中 `sslcom/esigner-codesign` 步骤已预埋（密钥存在即自动执行）。
+推送任意提交即产出**带 OV 云签名的安装包**。
 
-配好后告诉我，我推送一个空提交触发 CI，安装包就会带受信任签名，SAC 直接放行。
+---
 
-## 原理说明
-- CI 在 `tauri build` 后用 `azure/trusted-signing-action` 对 `target/release` 下全部 `.exe`（含 NSIS 安装包主程序和 maidoupig.exe）批量签名
-- 签名证书由微软云托管，私钥不出云，不存在证书泄露风险
-- 未配置 secrets 时签名步骤自动跳过，流水线照常产出未签名包，不影响现有流程
+## 方案 B：Certum 开源代码签名（推荐·零成本）
+
+适合：项目开源（我们本就是开源核心路线），不花一分钱。
+
+### 第 1 步：确认开源资格
+- 仓库需公开（当前 `github.com/lkliukun8099/-` 需改为 Public，或另建公开镜像仓库）
+- 有开源许可证文件（建议 MIT，我可以补一个 LICENSE）
+
+### 第 2 步：注册 Certum 并申请（30 分钟 + 1~3 天审核）
+1. 打开 https://www.certum.eu 注册账户（选个人开发者）
+2. 申请 **Open Source Code Signing**（免费档）
+3. 个人身份验证：身份证/护照拍照上传 + 手机号验证（中国证件支持）
+
+### 第 3 步：领取证书（SimplySign 云 HSM）
+1. 审核通过后证书入 SimplySign 云端
+2. 手机装 **SimplySign** App（扫码绑定，TOTP 二次验证）
+3. 记录：Certum 账户邮箱、密码、TOTP Secret
+
+### 第 4 步：CI 签名（我来配）
+Certum 提供 signtool 兼容的云签名插件，我在 CI 里加步骤
+（`signtool /fd SHA256 /tr <时间戳> /td SHA256 /dlib SimplySign.dll ...`）。
+需要的 Secrets：`CERTUM_USER` / `CERTUM_PASSWORD` / `CERTUM_TOTP_SECRET`。
+
+> 注：Certum 免费证书链在 Windows 受信任根目录内，SAC 同样认可；
+> 与付费 OV 的差异仅在品牌与审核深度。
+
+---
+
+## 方案 C：传统 CA OV 证书（备选）
+
+DigiCert / Sectigo / GlobalSign 官网或授权代理（如 SignMyCode、cheapsslsecurity）下单，
+企业验证流程与方案 A 类似，$150~300/年。签发形式多为云 HSM 或 USB 令牌（令牌不适合 CI，选云 HSM 交付）。
+
+---
+
+## CI 集成说明（已完成）
+`.github/workflows/ci-build.yml` 的打包 job 内含两个签名步骤，均**按密钥存在与否自动启用**：
+1. `azure/trusted-signing-action`（Azure 路线，中国实体不可用，保留占位）
+2. `sslcom/esigner-codesign`（方案 A，配好 4 个 ES_* secrets 即生效）
+
+签名对象：`src-tauri/target/release` 下全部 `.exe`（安装包 + 主程序）。
+未配置任何密钥时跳过签名，照常产出未签名包，流水线不报错。
+
+## 签名后验证
+下载新安装包 → 右键属性 → 「数字签名」标签页应显示发布者名称；
+双击运行，SAC 不再弹「无法验证发布者」硬拦截
+（初期可能仍有 SmartScreen 蓝色提示，点「更多信息 → 仍要运行」即可，
+连续发布数个签名版本后提示自然消失）。
